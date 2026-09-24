@@ -1,4 +1,123 @@
-// フォーム送信
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ログイン / アカウント作成</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .auth-container {
+      width: 100%;
+      max-width: 420px;
+      background: #fff;
+      border-radius: 24px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+      padding: 40px 32px;
+      text-align: center;
+    }
+    .auth-form {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      margin-top: 20px;
+    }
+    .auth-input {
+      width: 100%;
+      padding: 14px 16px;
+      border: 2px solid #eee;
+      border-radius: 12px;
+      font-size: 15px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .auth-input:focus {
+      border-color: #764ba2;
+    }
+    .toggle-link {
+      margin-top: 18px;
+      font-size: 13px;
+      color: #667eea;
+      cursor: pointer;
+      text-decoration: underline;
+    }
+    .alert-box {
+      margin-top: 15px;
+      font-size: 13px;
+      color: #e53935;
+      font-weight: bold;
+    }
+    .alert-box.success {
+      color: #2e7d32;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="auth-container">
+    <h1 class="title" id="auth-title">ログイン</h1>
+    <p class="subtitle" id="auth-subtitle">アカウント情報を入力してください</p>
+
+    <form class="auth-form" onsubmit="handleSubmit(event)">
+      <input type="text" id="username" class="auth-input" placeholder="ユーザー名" required autocomplete="off">
+      <input type="password" id="password" class="auth-input" placeholder="パスワード" required>
+      <button type="submit" id="submit-btn" class="primary-btn">ログイン</button>
+    </form>
+
+    <div id="alert-msg" class="alert-box"></div>
+    <div class="toggle-link" id="toggle-mode-btn" onclick="toggleMode()">新規登録はこちら</div>
+  </div>
+
+  <script>
+    const USER_STORAGE_KEY = 'linkou_language_app_users';
+    let currentMode = 'login'; // 'login' または 'register'
+
+    function getUsers() {
+      const data = localStorage.getItem(USER_STORAGE_KEY);
+      if (!data) return [];
+      try {
+        return JSON.parse(data);
+      } catch (e) {
+        return [];
+      }
+    }
+
+    function saveUsers(users) {
+      localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(users));
+    }
+
+    function showAlert(msg, isSuccess = false) {
+      const el = document.getElementById('alert-msg');
+      el.textContent = msg;
+      el.className = 'alert-box' + (isSuccess ? ' success' : '');
+    }
+
+    function switchMode(mode) {
+      currentMode = mode;
+      const title = document.getElementById('auth-title');
+      const subtitle = document.getElementById('auth-subtitle');
+      const submitBtn = document.getElementById('submit-btn');
+      const toggleBtn = document.getElementById('toggle-mode-btn');
+      const alertEl = document.getElementById('alert-msg');
+      alertEl.textContent = '';
+
+      if (currentMode === 'register') {
+        title.textContent = '新規登録';
+        subtitle.textContent = '新しいアカウントを作成します';
+        submitBtn.textContent = '登録する';
+        toggleBtn.textContent = 'すでにアカウントをお持ちの方はこちら (ログイン)';
+      } else {
+        title.textContent = 'ログイン';
+        subtitle.textContent = 'アカウント情報を入力してください';
+        submitBtn.textContent = 'ログイン';
+        toggleBtn.textContent = '新規登録はこちら';
+      }
+    }
+
+    function toggleMode() {
+      switchMode(currentMode === 'login' ? 'register' : 'login');
+    }
+
+    // フォーム送信
     function handleSubmit(e) {
       e.preventDefault();
       const name = document.getElementById('username').value.trim();
@@ -24,7 +143,6 @@
         users.push(newUser);
         saveUsers(users);
 
-        // 作成後そのままクイズ画面へ行く場合はこちらで即保存・遷移も可能
         showAlert(`🎉 アカウント「${name}」を作成しました！ログインしてください。`, true);
         setTimeout(() => {
           switchMode('login');
@@ -40,14 +158,17 @@
           return;
         }
 
-        // ★ログイン中ユーザーのセッションをlocalStorageに保存
+        // ログイン中ユーザーのセッションをlocalStorageに保存
         localStorage.setItem('linkou_current_user', JSON.stringify(user));
 
         showAlert(`ようこそ、${user.name}さん！クイズ画面へ移動します...`, true);
 
-        // ★クイズ画面 (indexQ.html) へ遷移
+        // クイズ画面 (indexQ.html) へ遷移
         setTimeout(() => {
           window.location.href = 'indexQ.html';
         }, 800);
       }
     }
+  </script>
+</body>
+</html>

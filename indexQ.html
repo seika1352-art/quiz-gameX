@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>4択クイズアプリ</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- ログインユーザー表示バー -->
+<div style="width: 100%; max-width: 560px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; background: rgba(255, 255, 255, 0.9); padding: 10px 18px; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); font-weight: bold; font-size: 13px; color: #333;">
+  <div style="display: flex; align-items: center; gap: 8px;">
+    <span>👤 <span id="current-user-name">ゲスト</span> さん</span>
+    <span style="background: #fef3c7; color: #b45309; padding: 2px 8px; border-radius: 8px;">🪙 <span id="current-user-points">0</span> pts</span>
+  </div>
+  <button onclick="logoutUser()" style="border: none; background: #fee2e2; color: #b91c1c; padding: 4px 10px; border-radius: 8px; cursor: pointer; font-size: 12px; font-weight: bold;">
+    ログアウト
+  </button>
+</div>
+
+<div class="app">
+
+  <!-- ローディング -->
+  <div id="loading" class="screen active">
+    <div class="spinner"></div>
+    <p>問題を読み込み中...</p>
+  </div>
+
+  <!-- ジャンル選択 -->
+  <div id="genre-screen" class="screen">
+    <h1 class="title">クイズアプリ</h1>
+    <p class="subtitle">ジャンルを選んでください</p>
+    <div id="genre-list" class="option-list"></div>
+  </div>
+
+  <!-- 難易度選択 -->
+  <div id="difficulty-screen" class="screen">
+    <h1 class="title">難易度を選択</h1>
+    <p class="subtitle" id="selected-genre-label"></p>
+    <div id="difficulty-list" class="option-list"></div>
+    <button class="back-btn" data-back="genre">← ジャンル選択に戻る</button>
+  </div>
+
+  <!-- クイズ画面 -->
+  <div id="quiz-screen" class="screen">
+    <div class="quiz-header">
+      <span id="quiz-progress">1 / 10</span>
+      <!-- ★追加: 腕試しモード用のライフ＆タイマー表示 -->
+      <span id="quiz-lives" class="quiz-lives" style="display: none;">❤️❤️❤️</span>
+      <span id="quiz-timer" class="quiz-timer" style="display: none;">⏱️ 10s</span>
+      <span id="quiz-score">スコア: 0</span>
+    </div>
+    <div class="progress-bar">
+      <div id="progress-fill" class="progress-fill"></div>
+    </div>
+    <div class="question-card">
+      <span id="quiz-tag" class="tag"></span>
+      <h2 id="question-text" class="question-text"></h2>
+      <div id="image-container" style="display: none; text-align: center; margin: 15px 0;">
+        <img id="question-image" src="" alt="問題画像" style="max-width: 100%; max-height: 300px; border-radius: 8px; object-fit: contain;">
+      </div>  
+    </div>
+    <div id="choices" class="choices"></div>
+    <button id="next-btn" class="next-btn" disabled>次の問題へ</button>
+  </div>
+
+  <!-- 結果画面 -->
+  <div id="result-screen" class="screen">
+    <h1 class="title">結果発表</h1>
+    <div class="result-circle">
+      <span id="result-score">0</span>
+      <span class="result-total">/ <span id="result-total">10</span></span>
+    </div>
+    <p id="result-message" class="subtitle"></p>
+    <div class="result-buttons">
+      <button id="retry-btn" class="primary-btn">同じ難易度で再挑戦</button>
+      <button id="home-btn" class="secondary-btn">ジャンル選択に戻る</button>
+    </div>
+  </div>
+
+  <!-- エラー -->
+  <div id="error-screen" class="screen">
+    <h1 class="title">読み込みエラー</h1>
+    <p class="subtitle" id="error-message">データを取得できませんでした。</p>
+    <button id="retry-load-btn" class="primary-btn">再読み込み</button>
+  </div>
+
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>

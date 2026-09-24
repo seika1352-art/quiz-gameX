@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>【管理者専用】林口 言語交流アプリ - JSON CRUD 管理画面</title>
+  <!-- Tailwind CSS & FontAwesome -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'M PLUS Rounded 1c', sans-serif; }
+    .font-mono-code { font-family: 'JetBrains Mono', monospace; }
+  </style>
+</head>
+<body class="bg-slate-100 min-h-screen text-slate-800 p-4 sm:p-6">
+
+  <div class="max-w-7xl mx-auto space-y-6">
+    <!-- 管理者ヘッダー -->
+    <header class="bg-slate-900 text-white rounded-3xl p-5 shadow-lg flex flex-col sm:flex-row items-center justify-between gap-4 border-2 border-slate-700">
+      <div class="flex items-center gap-3">
+        <div class="w-12 h-12 rounded-2xl bg-amber-400 text-slate-900 flex items-center justify-center text-2xl font-black shadow-md">
+          <i class="fa-solid fa-shield-halved"></i>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="text-xl font-extrabold tracking-wide">林口 言語交流会 アカウント管理コンソール</h1>
+            <span class="bg-red-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider">Admin Only</span>
+          </div>
+          <p class="text-xs text-slate-400 font-bold mt-0.5">参加者用画面 (index.html) と localStorage 経由で常時連携中</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-2 w-full sm:w-auto">
+        <button onclick="refreshData()" class="flex-1 sm:flex-none px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-xl text-xs font-bold text-sky-400 transition-colors">
+          <i class="fa-solid fa-arrows-rotate mr-1"></i> 最新データ再取得
+        </button>
+        <button onclick="openCreateModal()" class="flex-1 sm:flex-none px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white font-black rounded-xl text-xs shadow-md transition-colors">
+          <i class="fa-solid fa-plus mr-1"></i> アカウント直接追加
+        </button>
+      </div>
+    </header>
+
+    <!-- メインCRUDエリア -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      
+      <!-- 左：ユーザー一覧テーブル (Read, Update, Delete) -->
+      <div class="lg:col-span-7 bg-white rounded-3xl shadow-sm border border-slate-200 p-6 flex flex-col justify-between">
+        <div>
+          <div class="flex items-center justify-between mb-4 pb-2 border-b border-slate-100">
+            <div>
+              <h2 class="text-lg font-black text-slate-800 flex items-center gap-2">
+                <i class="fa-solid fa-users text-sky-500"></i> 登録アカウント一覧 (Read)
+              </h2>
+              <p class="text-xs text-slate-400 font-bold">現在登録されている全メンバーのリスト</p>
+            </div>
+            <span id="userCountBadge" class="bg-sky-50 text-sky-600 border border-sky-200 font-black text-xs px-3 py-1 rounded-full">
+              0 件
+            </span>
+          </div>
+
+          <div class="overflow-x-auto max-h-[500px]">
+            <table class="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr class="bg-slate-50 text-slate-500 border-b border-slate-200 font-bold">
+                  <th class="p-3">ID</th>
+                  <th class="p-3">名前 (ニックネーム)</th>
+                  <th class="p-3">パスワード</th>
+                  <th class="p-3">ポイント</th>
+                  <th class="p-3 text-right">操作 (U / D)</th>
+                </tr>
+              </thead>
+              <tbody id="userTableBody" class="divide-y divide-slate-100 font-bold text-slate-700">
+                <!-- JSで動的挿入 -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="pt-4 mt-4 border-t border-slate-100 flex justify-between items-center text-xs">
+          <span class="text-slate-400 font-bold"><i class="fa-solid fa-circle-info mr-1 text-sky-500"></i>名前とパスワードの個別修正・削除が可能です</span>
+          <button onclick="clearAllUsers()" class="text-red-500 hover:text-red-700 font-bold px-3 py-1.5 rounded-lg border border-red-200 hover:bg-red-50 transition-colors">
+            <i class="fa-solid fa-trash-can mr-1"></i> 全データ初期化
+          </button>
+        </div>
+      </div>
+
+      <!-- 右：JSONエディタ & 保存・同期エリア (JSON CRUD) -->
+      <div class="lg:col-span-5 bg-white rounded-3xl shadow-sm border border-slate-200 p-6 flex flex-col justify-between">
+        <div>
+          <div class="flex items-center justify-between mb-4 pb-2 border-b border-slate-100">
+            <div>
+              <h2 class="text-lg font-black text-slate-800 flex items-center gap-2">
+                <i class="fa-solid fa-code text-amber-500"></i> JSON 直通エディタ
+              </h2>
+              <p class="text-xs text-slate-400 font-bold">JSON文字列の直接コピー・編集・一括保存</p>
+            </div>
+            <div class="flex gap-1.5">
+              <button onclick="copyJson()" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-lg text-xs transition-colors">
+                <i class="fa-regular fa-copy mr-1"></i>コピー
+              </button>
+              <button onclick="downloadJsonFile()" class="px-2.5 py-1 bg-sky-500 hover:bg-sky-600 text-white font-bold rounded-lg text-xs shadow-sm transition-colors">
+                <i class="fa-solid fa-download mr-1"></i>.json 保存
+              </button>
+            </div>
+          </div>
+
+          <textarea id="jsonEditor" rows="18" spellcheck="false" 
+            class="w-full font-mono-code text-xs bg-slate-900 text-emerald-400 p-4 rounded-2xl border border-slate-700 focus:outline-none focus:border-amber-400 leading-relaxed shadow-inner"></textarea>
+        </div>
+
+        <div class="mt-4 pt-4 border-t border-slate-100 flex items-center justify-between gap-3">
+          <p class="text-[11px] text-slate-400 font-bold">※ テキストエリアを直接書き換えて下のボタンを押すと一括反映されます</p>
+          <button onclick="applyJsonUpdate()" class="px-4 py-2.5 bg-amber-400 hover:bg-amber-500 text-amber-950 font-black rounded-xl text-xs shadow-sm transition-colors whitespace-nowrap">
+            <i class="fa-solid fa-check mr-1"></i> JSONを一括反映 (Update)
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- モーダル：編集 (Update) -->
+  <div id="editModal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl p-6 max-w-sm w-full border-4 border-slate-100 shadow-2xl">
+      <h3 class="text-base font-black text-slate-800 mb-4 flex items-center gap-2">
+        <i class="fa-solid fa-user-pen text-sky-500"></i> アカウント情報編集
+      </h3>
+      <input type="hidden" id="editUserId">
+      <div class="space-y-3 text-xs">
+        <div>
+          <label class="block font-bold text-slate-600 mb-1">お名前</label>
+          <input type="text" id="editUserName" class="w-full px-3 py-2 rounded-xl border border-slate-200 font-bold focus:border-sky-500 focus:outline-none">
+        </div>
+        <div>
+          <label class="block font-bold text-slate-600 mb-1">パスワード</label>
+          <input type="text" id="editUserPassword" class="w-full px-3 py-2 rounded-xl border border-slate-200 font-bold focus:border-sky-500 focus:outline-none">
+        </div>
+        <div>
+          <label class="block font-bold text-slate-600 mb-1">ポイント</label>
+          <input type="number" id="editUserPoints" class="w-full px-3 py-2 rounded-xl border border-slate-200 font-bold focus:border-sky-500 focus:outline-none">
+        </div>
+      </div>
+      <div class="flex justify-end gap-2 mt-5">
+        <button onclick="closeEditModal()" class="px-4 py-2 rounded-xl bg-slate-100 font-bold text-slate-600 hover:bg-slate-200 text-xs">キャンセル</button>
+        <button onclick="saveEditUser()" class="px-4 py-2 rounded-xl bg-sky-500 text-white font-black hover:bg-sky-600 text-xs">保存する</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- モーダル：新規追加 (Create) -->
+  <div id="createModal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl p-6 max-w-sm w-full border-4 border-slate-100 shadow-2xl">
+      <h3 class="text-base font-black text-slate-800 mb-4 flex items-center gap-2">
+        <i class="fa-solid fa-user-plus text-emerald-500"></i> 新規アカウント直接作成
+      </h3>
+      <div class="space-y-3 text-xs">
+        <div>
+          <label class="block font-bold text-slate-600 mb-1">お名前</label>
+          <input type="text" id="createUserName" placeholder="例: 台湾太郎" class="w-full px-3 py-2 rounded-xl border border-slate-200 font-bold focus:border-emerald-500 focus:outline-none">
+        </div>
+        <div>
+          <label class="block font-bold text-slate-600 mb-1">パスワード</label>
+          <input type="text" id="createUserPassword" value="1" class="w-full px-3 py-2 rounded-xl border border-slate-200 font-bold focus:border-emerald-500 focus:outline-none">
+        </div>
+        <div>
+          <label class="block font-bold text-slate-600 mb-1">初期ポイント</label>
+          <input type="number" id="createUserPoints" value="1000" class="w-full px-3 py-2 rounded-xl border border-slate-200 font-bold focus:border-emerald-500 focus:outline-none">
+        </div>
+      </div>
+      <div class="flex justify-end gap-2 mt-5">
+        <button onclick="closeCreateModal()" class="px-4 py-2 rounded-xl bg-slate-100 font-bold text-slate-600 hover:bg-slate-200 text-xs">キャンセル</button>
+        <button onclick="submitCreateUser()" class="px-4 py-2 rounded-xl bg-emerald-500 text-white font-black hover:bg-emerald-600 text-xs">作成</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const STORAGE_KEY = 'linkou_language_app_users';
+
+    function getUsers() {
+      const data = localStorage.getItem(STORAGE_KEY);
+      if (!data) return [];
+      try {
+        return JSON.parse(data);
+      } catch (e) {
+        return [];
+      }
+    }
+
+    function saveUsers(users) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(users));
+      render();
+    }
+
+    function render() {
+      const users = getUsers();
+      document.getElementById('userCountBadge').textContent = `${users.length} 件`;
+
+      // テーブル描画
+      const tbody = document.getElementById('userTableBody');
+      tbody.innerHTML = '';
+      if (users.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" class="p-6 text-center text-slate-400 font-bold">登録済みアカウントがありません</td></tr>`;
+      } else {
+        users.forEach(u => {
+          const tr = document.createElement('tr');
+          tr.className = "hover:bg-slate-50 transition-colors";
+          tr.innerHTML = `
+            <td class="p-3 text-slate-400 font-mono text-[11px]">${u.id || '-'}</td>
+            <td class="p-3 text-slate-900 font-black">${u.name}</td>
+            <td class="p-3"><span class="px-2 py-0.5 rounded bg-amber-50 text-amber-700 font-mono text-xs border border-amber-200">${u.password}</span></td>
+            <td class="p-3 text-sky-600">${u.points || 0} pts</td>
+            <td class="p-3 text-right">
+              <button onclick="openEditModal('${u.id}')" class="p-1.5 text-sky-600 hover:bg-sky-50 rounded-lg mr-1" title="編集">
+                <i class="fa-solid fa-pen-to-square"></i>
+              </button>
+              <button onclick="deleteUser('${u.id}')" class="p-1.5 text-red-500 hover:bg-red-50 rounded-lg" title="削除">
+                <i class="fa-solid fa-trash-can"></i>
+              </button>
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
+      }
+
+      // JSONエリア同期
+      document.getElementById('jsonEditor').value = JSON.stringify(users, null, 2);
+    }
+
+    function refreshData() {
+      render();
+      alert('最新データを再取得しました！');
+    }
+
+    // 削除 (Delete)
+    function deleteUser(id) {
+      if (!confirm('このアカウントを削除してもよろしいですか？')) return;
+      const users = getUsers().filter(u => u.id !== id);
+      saveUsers(users);
+    }
+
+    function clearAllUsers() {
+      if (!confirm('全アカウントデータを消去しますか？（元に戻せません）')) return;
+      saveUsers([]);
+    }
+
+    // 編集モーダル (Update)
+    function openEditModal(id) {
+      const users = getUsers();
+      const user = users.find(u => u.id === id);
+      if (!user) return;
+      document.getElementById('editUserId').value = user.id;
+      document.getElementById('editUserName').value = user.name;
+      document.getElementById('editUserPassword').value = user.password;
+      document.getElementById('editUserPoints').value = user.points || 0;
+      document.getElementById('editModal').classList.remove('hidden');
+    }
+
+    function closeEditModal() {
+      document.getElementById('editModal').classList.add('hidden');
+    }
+
+    function saveEditUser() {
+      const id = document.getElementById('editUserId').value;
+      const name = document.getElementById('editUserName').value.trim();
+      const password = document.getElementById('editUserPassword').value;
+      const points = parseInt(document.getElementById('editUserPoints').value, 10) || 0;
+
+      if (!name) return alert('名前を入力してください');
+
+      const users = getUsers();
+      const idx = users.findIndex(u => u.id === id);
+      if (idx !== -1) {
+        users[idx].name = name;
+        users[idx].password = password;
+        users[idx].points = points;
+        saveUsers(users);
+        closeEditModal();
+      }
+    }
+
+    // 新規作成モーダル (Create)
+    function openCreateModal() {
+      document.getElementById('createUserName').value = '';
+      document.getElementById('createUserPassword').value = '1';
+      document.getElementById('createUserPoints').value = '1000';
+      document.getElementById('createModal').classList.remove('hidden');
+    }
+
+    function closeCreateModal() {
+      document.getElementById('createModal').classList.add('hidden');
+    }
+
+    function submitCreateUser() {
+      const name = document.getElementById('createUserName').value.trim();
+      const password = document.getElementById('createUserPassword').value;
+      const points = parseInt(document.getElementById('createUserPoints').value, 10) || 1000;
+
+      if (!name) return alert('お名前を入力してください');
+
+      const users = getUsers();
+      users.push({
+        id: 'usr_' + Date.now().toString(36),
+        name: name,
+        password: password,
+        points: points,
+        createdAt: new Date().toISOString()
+      });
+      saveUsers(users);
+      closeCreateModal();
+    }
+
+    // JSON一括反映 (Update via JSON text)
+    function applyJsonUpdate() {
+      const raw = document.getElementById('jsonEditor').value;
+      try {
+        const parsed = JSON.parse(raw);
+        if (!Array.isArray(parsed)) throw new Error('配列形式で記述してください');
+        saveUsers(parsed);
+        alert('JSONデータを一括反映しました！');
+      } catch (err) {
+        alert('JSONの構文に誤りがあります:\n' + err.message);
+      }
+    }
+
+    // JSONコピー
+    function copyJson() {
+      const text = document.getElementById('jsonEditor').value;
+      navigator.clipboard.writeText(text).then(() => {
+        alert('JSONをクリップボードにコピーしました！');
+      });
+    }
+
+    // .jsonファイルダウンロード
+    function downloadJsonFile() {
+      const text = document.getElementById('jsonEditor').value;
+      const blob = new Blob([text], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `linkou_users_${new Date().toISOString().slice(0,10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    // 他タブでの変更をリアルタイム検知
+    window.addEventListener('storage', (e) => {
+      if (e.key === STORAGE_KEY) {
+        render();
+      }
+    });
+
+    // 初期描画
+    render();
+  </script>
+</body>
+</html>

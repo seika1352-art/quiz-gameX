@@ -1,0 +1,53 @@
+// フォーム送信
+    function handleSubmit(e) {
+      e.preventDefault();
+      const name = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value;
+      const users = getUsers();
+
+      if (currentMode === 'register') {
+        // 重複チェック
+        const exists = users.find(u => u.name.toLowerCase() === name.toLowerCase());
+        if (exists) {
+          showAlert('この名前はすでに使われています。別の名前を入力してください。');
+          return;
+        }
+
+        const newUser = {
+          id: 'usr_' + Date.now().toString(36),
+          name: name,
+          password: password,
+          points: 1000,
+          createdAt: new Date().toISOString()
+        };
+
+        users.push(newUser);
+        saveUsers(users);
+
+        // 作成後そのままクイズ画面へ行く場合はこちらで即保存・遷移も可能
+        showAlert(`🎉 アカウント「${name}」を作成しました！ログインしてください。`, true);
+        setTimeout(() => {
+          switchMode('login');
+          document.getElementById('username').value = name;
+          document.getElementById('password').value = password;
+        }, 1200);
+
+      } else {
+        // ログイン処理
+        const user = users.find(u => u.name === name && u.password === password);
+        if (!user) {
+          showAlert('アカウントかパスワードに誤りがあります');
+          return;
+        }
+
+        // ★ログイン中ユーザーのセッションをlocalStorageに保存
+        localStorage.setItem('linkou_current_user', JSON.stringify(user));
+
+        showAlert(`ようこそ、${user.name}さん！クイズ画面へ移動します...`, true);
+
+        // ★クイズ画面 (indexQ.html) へ遷移
+        setTimeout(() => {
+          window.location.href = 'indexQ.html';
+        }, 800);
+      }
+    }
